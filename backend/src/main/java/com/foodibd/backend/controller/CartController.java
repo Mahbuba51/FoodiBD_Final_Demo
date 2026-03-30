@@ -9,42 +9,66 @@ import com.foodibd.backend.dto.cart.verify.VerifyResponseDTO;
 import com.foodibd.backend.dto.cart.bill.BillRequestDTO;
 import com.foodibd.backend.dto.cart.bill.BillResponseDTO;
 
-
+import com.foodibd.backend.service.CartService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/cart")
+@RequiredArgsConstructor
 public class CartController {
 
-    //promo
+    private final CartService cartService;
+
+    // ─── PROMO ───────────────────────────────────────────────────────────────
+
     @PostMapping("/promo")
     public ResponseEntity<PromoResponseDTO> validatePromo(
             @RequestHeader("Authorization") String authorizationHeader,
             @RequestBody PromoRequestDTO request) {
 
-        // TODO: call service layer
-        return ResponseEntity.ok().build();
+        PromoResponseDTO response = cartService.validatePromo(request);
+        return ResponseEntity.ok(response);
     }
 
-    // bill
+    // ─── BILL ────────────────────────────────────────────────────────────────
+
     @PostMapping("/bill")
     public ResponseEntity<BillResponseDTO> generateBill(
             @RequestHeader("Authorization") String authorizationHeader,
             @RequestBody BillRequestDTO request) {
 
-        // TODO: call service layer
-        return ResponseEntity.ok().build();
+        BillResponseDTO response = cartService.generateBill(request);
+        return ResponseEntity.ok(response);
     }
-        //get cart item details by cart item id
+
+    // ─── VERIFY ──────────────────────────────────────────────────────────────
+
     @PostMapping("/verify")
     public ResponseEntity<VerifyResponseDTO> verify(
             @RequestHeader("Authorization") String authorizationHeader,
-            @RequestBody  VerifyRequestDTO request) {
+            @RequestBody VerifyRequestDTO request) {
 
-        // TODO: call service layer
-        return ResponseEntity.ok().build();
+        VerifyResponseDTO response = cartService.verify(request);
+        return ResponseEntity.ok(response);
     }
 
+    // ─── EXCEPTION HANDLERS ──────────────────────────────────────────────────
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
+        String message = ex.getMessage();
+
+        HttpStatus status = (message != null && message.startsWith("Cannot checkout"))
+                ? HttpStatus.BAD_REQUEST      // 400 — empty cart
+                : HttpStatus.NOT_FOUND;       // 404 — restaurant / menu item not found
+
+        return ResponseEntity
+                .status(status)
+                .body(Map.of("message", message != null ? message : "Bad request."));
+    }
 }
