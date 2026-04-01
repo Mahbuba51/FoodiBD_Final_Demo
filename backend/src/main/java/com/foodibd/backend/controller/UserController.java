@@ -1,22 +1,21 @@
 package com.foodibd.backend.controller;
 
 import com.foodibd.backend.dto.user.AddressResponseDTO;
-
-import org.springframework.http.HttpStatus;
+import com.foodibd.backend.service.UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/users")
+@RequiredArgsConstructor
 public class UserController {
 
-    //get default address
+    private final UserService userService;
+
     @GetMapping("/addresses/default")
     public ResponseEntity<AddressResponseDTO> getDefaultAddress(
             @RequestHeader("Authorization") String authorizationHeader) {
-
-        // TODO: call service layer
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(userService.getDefaultAddress());
     }
-
 }
