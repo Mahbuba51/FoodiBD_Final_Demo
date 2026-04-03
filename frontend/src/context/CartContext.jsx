@@ -42,30 +42,36 @@ const cartReducer = (state, action) => {
     case "CLEAR_CART":
       return { ...state, items: [] };
     case "APPLY_PROMO":
-      return { ...state, promoCode: action.payload.code, discount: action.payload.discount };
+      // Store the promo type + value, NOT a fixed discount amount
+      return {
+        ...state,
+        promoCode:     action.payload.code,
+        promoType:     action.payload.type,   // "percent" | "flat"
+        promoValue:    action.payload.value,  // 20 for FOOD20, 50 for WELCOME50
+      };
     case "REMOVE_PROMO":
-      return { ...state, promoCode: null, discount: 0 };
+      return { ...state, promoCode: null, promoType: null, promoValue: 0 };
     default:
       return state;
   }
 };
 
 const initialState = {
-  items: JSON.parse(localStorage.getItem("cart_items") || "[]"),
-  promoCode: null,
-  discount: 0,
+  items:      JSON.parse(localStorage.getItem("cart_items") || "[]"),
+  promoCode:  null,
+  promoType:  null,
+  promoValue: 0,
 };
 
 export const CartProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cartReducer, initialState);
 
-  // Save to localStorage whenever cart items change
   useEffect(() => {
     localStorage.setItem("cart_items", JSON.stringify(state.items));
   }, [state.items]);
 
-  const addItem = (item) => dispatch({ type: "ADD_ITEM", payload: item });
-  const removeItem = (index) => dispatch({ type: "REMOVE_ITEM", payload: index });
+  const addItem       = (item)            => dispatch({ type: "ADD_ITEM",       payload: item });
+  const removeItem    = (index)           => dispatch({ type: "REMOVE_ITEM",    payload: index });
   const updateQuantity = (index, quantity) => {
     if (quantity <= 0) {
       removeItem(index);
@@ -73,25 +79,38 @@ export const CartProvider = ({ children }) => {
       dispatch({ type: "UPDATE_QUANTITY", payload: { index, quantity } });
     }
   };
-  const clearCart = () => dispatch({ type: "CLEAR_CART" });
-  const applyPromo = (code, discount) =>
-    dispatch({ type: "APPLY_PROMO", payload: { code, discount } });
-  const removePromo = () => dispatch({ type: "REMOVE_PROMO" });
+  const clearCart  = ()               => dispatch({ type: "CLEAR_CART" });
+  const removePromo = ()              => dispatch({ type: "REMOVE_PROMO" });
+
+  // applyPromo now receives type + value so discount can be recalculated live
+  const applyPromo = (code, type, value) =>
+    dispatch({ type: "APPLY_PROMO", payload: { code, type, value } });
 
   const DELIVERY_FEE = 50;
+
   const subtotal = state.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const total = subtotal + DELIVERY_FEE - state.discount;
+
+  // Recalculate discount from live subtotal every render
+  const discount = state.promoCode
+    ? state.promoType === "percent"
+      ? Math.round((subtotal * state.promoValue) / 100)
+      : state.promoValue
+    : 0;
+
+  const total      = Math.max(subtotal + DELIVERY_FEE - discount, 0);
   const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <CartContext.Provider
       value={{
-        items: state.items,
-        promoCode: state.promoCode,
-        discount: state.discount,
+        items:      state.items,
+        promoCode:  state.promoCode,
+        promoType:  state.promoType,
+        promoValue: state.promoValue,
+        discount,
         subtotal,
         total,
         totalItems,

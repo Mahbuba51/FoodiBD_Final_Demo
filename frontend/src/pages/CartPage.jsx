@@ -26,7 +26,8 @@ export default function CartPage() {
     setPromoError("");
     try {
       const result = await validatePromoCode(promoInput, subtotal);
-      applyPromo(promoInput.toUpperCase(), result.discount);
+      // Pass type + value so CartContext can recalculate discount live
+      applyPromo(promoInput.toUpperCase(), result.type, result.value);
       setPromoInput("");
     } catch {
       setPromoError("Invalid promo code. Try FOOD20 or WELCOME50");
@@ -41,8 +42,11 @@ export default function CartPage() {
     setOrderLoading(false);
     if (result.success) {
       clearCart();
-      alert(`Order placed! Order ID: ${result.orderId}`);
-      navigate("/");
+      navigate("/order-confirmed", {
+        state: { orderId: result.orderId, total, itemCount: totalItems },
+      });
+    } else {
+      alert(result.message ?? "Something went wrong. Please try again.");
     }
   };
 
@@ -57,7 +61,9 @@ export default function CartPage() {
           </button>
           <div className="header-title">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" />
+              <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <path d="M16 10a4 4 0 01-8 0" />
             </svg>
             Your Cart
           </div>
@@ -74,7 +80,6 @@ export default function CartPage() {
 
   return (
     <div className="cart-page">
-      {/* Header */}
       <div className="cart-header">
         <button className="back-btn" onClick={() => navigate(-1)}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -83,7 +88,9 @@ export default function CartPage() {
         </button>
         <div className="header-title">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 01-8 0" />
+            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <path d="M16 10a4 4 0 01-8 0" />
           </svg>
           Your Cart
         </div>
@@ -91,7 +98,6 @@ export default function CartPage() {
       </div>
 
       <div className="cart-body">
-        {/* Delivery Info */}
         <div className="delivery-card">
           <div className="delivery-row">
             <div className="delivery-left">
@@ -109,7 +115,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* Cart Items */}
         <div className="cart-items">
           {items.map((item, index) => (
             <div key={index} className="cart-item">
@@ -120,7 +125,10 @@ export default function CartPage() {
                     <span className="cart-item-name">{item.name}</span>
                     <button className="delete-btn" onClick={() => removeItem(index)}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
-                        <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14H6L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M9 6V4h6v2" />
                       </svg>
                     </button>
                   </div>
@@ -143,7 +151,6 @@ export default function CartPage() {
           ))}
         </div>
 
-        {/* Order Options */}
         <div className="order-options">
           <button className="option-pill" onClick={() => navigate("/")}>
             <span>＋</span> Add More Items
@@ -162,7 +169,6 @@ export default function CartPage() {
           />
         )}
 
-        {/* Promo Code */}
         <div className="promo-section">
           <div className="promo-header">
             <span className="promo-icon">🏷️</span>
@@ -183,11 +189,7 @@ export default function CartPage() {
                   onChange={(e) => { setPromoInput(e.target.value); setPromoError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
                 />
-                <button
-                  className="apply-btn"
-                  onClick={handleApplyPromo}
-                  disabled={promoLoading}
-                >
+                <button className="apply-btn" onClick={handleApplyPromo} disabled={promoLoading}>
                   {promoLoading ? "..." : "Apply"}
                 </button>
               </div>
@@ -197,7 +199,6 @@ export default function CartPage() {
           )}
         </div>
 
-        {/* Bill Summary */}
         <div className="bill-section">
           <h3 className="bill-title">Bill Summary</h3>
           <div className="bill-row">
@@ -222,17 +223,12 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Checkout Bar */}
       <div className="checkout-bar">
         <div className="checkout-total">
           <span className="checkout-label">Total Amount</span>
           <span className="checkout-price">৳{total}</span>
         </div>
-        <button
-          className="checkout-btn"
-          onClick={handleCheckout}
-          disabled={orderLoading}
-        >
+        <button className="checkout-btn" onClick={handleCheckout} disabled={orderLoading}>
           {orderLoading ? "Placing..." : "Proceed to Checkout"}
         </button>
       </div>
