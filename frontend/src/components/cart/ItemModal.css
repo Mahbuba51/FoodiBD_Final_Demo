@@ -1,0 +1,111 @@
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } }
+
+.modal-sheet {
+  background: white; width: 100%; max-width: 480px;
+  border-radius: 24px 24px 0 0;
+  max-height: 92vh; overflow-y: auto;
+  animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  scrollbar-width: none;
+}
+.modal-sheet::-webkit-scrollbar { display: none; }
+.modal-exit { animation: slideDown 0.3s ease forwards; }
+
+@keyframes slideUp { from { transform: translateY(100%); } }
+@keyframes slideDown { to { transform: translateY(100%); opacity: 0; } }
+
+.modal-img-wrap { position: relative; height: 220px; }
+.modal-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.modal-close {
+  position: absolute; top: 14px; left: 14px;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: white; border: none; font-size: 14px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.modal-body { padding: 20px 20px 100px; }
+.modal-title { font-size: 1.3rem; font-weight: 800; color: #1a1a1a; }
+.modal-from { color: #6b7280; font-size: 0.9rem; margin: 4px 0 10px; }
+.modal-desc { font-size: 0.85rem; color: #6b7280; line-height: 1.6; margin-bottom: 20px; }
+
+.custom-group { margin-bottom: 24px; }
+.group-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.group-label { font-weight: 800; font-size: 0.95rem; color: #1a1a1a; }
+.group-badge {
+  font-size: 0.72rem; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px;
+}
+.group-badge.required { background: #fff7ed; color: #f97316; }
+.group-badge.completed { background: #f97316; color: white; }
+.group-badge.optional { background: #f3f4f6; color: #6b7280; }
+.group-hint { font-size: 0.8rem; color: #9ca3af; margin-bottom: 10px; }
+
+.option-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border: 1.5px solid #e5e7eb;
+  border-radius: 10px; margin-bottom: 8px;
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.option-row.option-active { border-color: #f97316; background: #fff7ed; }
+.option-row:hover { border-color: #f97316; }
+
+.option-name-row { display: flex; align-items: center; gap: 8px; }
+.topping-fire { font-size: 14px; }
+.option-name { font-size: 0.9rem; font-weight: 600; color: #1a1a1a; }
+.option-right { display: flex; align-items: center; gap: 10px; }
+.original-price { font-size: 0.78rem; color: #9ca3af; text-decoration: line-through; }
+.option-price { font-size: 0.85rem; color: #6b7280; font-weight: 600; }
+
+.radio-btn {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid #d1d5db; transition: all 0.15s;
+}
+.radio-btn.radio-active { border-color: #f97316; background: #f97316; box-shadow: inset 0 0 0 3px white; }
+
+.checkbox-btn {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 2px solid #d1d5db;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: white; transition: all 0.15s;
+}
+.checkbox-btn.checkbox-active { background: #f97316; border-color: #f97316; }
+
+/* Footer */
+.modal-footer {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  background: white; padding: 14px 20px 24px;
+  display: flex; gap: 12px; align-items: center;
+  border-top: 1px solid #f3f4f6;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+}
+.qty-control {
+  display: flex; align-items: center; gap: 0;
+  border: 1.5px solid #e5e7eb; border-radius: 10px; overflow: hidden;
+}
+.qty-control button {
+  width: 38px; height: 44px; background: white; border: none;
+  font-size: 1.2rem; cursor: pointer; color: #f97316; font-weight: 700;
+  transition: background 0.15s;
+}
+.qty-control button:hover { background: #fff7ed; }
+.qty-control span {
+  width: 40px; text-align: center; font-weight: 700; font-size: 0.95rem;
+}
+
+.add-to-cart-main {
+  flex: 1; padding: 13px; background: #f97316;
+  color: white; border: none; border-radius: 10px;
+  font-weight: 700; font-size: 0.9rem; cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.add-to-cart-main:hover { background: #ea6c0a; }
+.add-to-cart-main:active { transform: scale(0.98); }
+.add-to-cart-main.btn-success { background: #16a34a; }
