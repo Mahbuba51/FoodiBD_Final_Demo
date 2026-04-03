@@ -11,7 +11,8 @@ import com.foodibd.backend.repository.RestaurantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,91 +23,64 @@ public class RestaurantService {
     private final MenuRepository menuRepository;
     private final MenuItemRepository menuItemRepository;
 
-    // ─── GET RESTAURANT DETAILS ──────────────────────────────────────────────
+    // ── GET /restaurants/{id} ─────────────────────────────────────────────────
 
     public RestaurantDetailsResponseDTO getRestaurantDetails(Integer restaurantId) {
-        Restaurant restaurant = restaurantRepository.findById(restaurantId)
-                .orElseThrow(() -> new NoSuchElementException(
-                        "Restaurant not found: " + restaurantId));
+        Restaurant r = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new RuntimeException("Restaurant not found: " + restaurantId));
 
         return RestaurantDetailsResponseDTO.builder()
-                .restaurantId(restaurant.getRestaurantID())
-                .name(restaurant.getName())
-                .cuisineTags(restaurant.getCuisineTypes())
-                .rating(restaurant.getRating())
-                // Fields not in entity — safe demo defaults below
-                .ratingCount(120)
-                .distanceM(1200)
-                .deliveryTimeMin(20)
-                .deliveryTimeMax(35)
+                .restaurantId(r.getRestaurantID())
+                .name(r.getName())
+                .cuisineTags(r.getCuisineTypes())
+                .rating(r.getRating())
+                .ratingCount(557)
+                .distanceM(509)
+                .deliveryTimeMin(25)
+                .deliveryTimeMax(40)
                 .deliveryFee(50)
-                .deliveredBy("Foodi Express")
-                .bannerUrl(null)
-                .logoUrl(null)
-                .isOpen(restaurant.getAvailable())
+                .deliveredBy("Delivered by Foodi")
+                .bannerUrl("https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&h=300&fit=crop")
+                .logoUrl("https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=100&h=100&fit=crop")
+                .isOpen(r.getAvailable())
                 .openingTime("10:00")
                 .closingTime("23:00")
                 .build();
     }
 
-    // ─── GET RESTAURANT MENU ─────────────────────────────────────────────────
+    // ── GET /restaurants/{id}/menu ────────────────────────────────────────────
 
     public MenuResponseDTO getRestaurantMenu(Integer restaurantId, String query) {
-        // Verify restaurant exists
-        restaurantRepository.findById(restaurantId)
-                .orElseThrow(() -> new NoSuchElementException(
-                        "Restaurant not found: " + restaurantId));
-
-        // Get the menu for this restaurant
         var menu = menuRepository.findByRestaurantRestaurantID(restaurantId)
-                .orElseThrow(() -> new NoSuchElementException(
-                        "Menu not found for restaurant: " + restaurantId));
+                .orElseThrow(() -> new RuntimeException("Menu not found for restaurant: " + restaurantId));
 
-        // Get all items, optionally filtered by search query
-        List<MenuItem> allItems = menuItemRepository.findByMenuMenuID(menu.getMenuID());
+        List<MenuItem> items = menuItemRepository.findByMenuMenuID(menu.getMenuID());
 
+        // Optional search filter
         if (query != null && !query.isBlank()) {
-            String lowerQuery = query.toLowerCase();
-            allItems = allItems.stream()
-                    .filter(item -> item.getName().toLowerCase().contains(lowerQuery)
-                            || (item.getDescription() != null
-                                && item.getDescription().toLowerCase().contains(lowerQuery)))
+            String q = query.toLowerCase();
+            items = items.stream()
+                    .filter(i -> i.getName().toLowerCase().contains(q)
+                            || i.getDescription().toLowerCase().contains(q))
                     .collect(Collectors.toList());
         }
 
         // Group items by their first category tag
-        // e.g. items tagged ["Burgers", "Bestseller"] go into the "Burgers" category
-        Map<String, List<MenuItem>> grouped = new LinkedHashMap<>();
-        for (MenuItem item : allItems) {
-            String category = (item.getCategories() != null && !item.getCategories().isEmpty())
-                    ? item.getCategories().get(0)
-                    : "Other";
-            grouped.computeIfAbsent(category, k -> new ArrayList<>()).add(item);
-        }
+        Map<String, List<MenuItem>> grouped = items.stream()
+                .collect(Collectors.groupingBy(
+                        i -> (i.getCategories() != null && !i.getCategories().isEmpty())
+                                ? i.getCategories().get(0)
+                                : "Other"
+                ));
 
-        // Build category DTOs
-        List<MenuCategoryDTO> categories = new ArrayList<>();
-        int categoryIdCounter = 1;
-        for (Map.Entry<String, List<MenuItem>> entry : grouped.entrySet()) {
-            List<MenuItemSummaryDTO> summaries = entry.getValue().stream()
-                    .map(item -> MenuItemSummaryDTO.builder()
-                            .itemId(item.getItemId())
-                            .name(item.getName())
-                            .description(item.getDescription())
-                            .price(item.getPrice() != null
-                                    ? (int) Math.round(item.getPrice()) : 0)
-                            .thumbnailUrl(null)
-                            .isPopular(false)
-                            .isAvailable(item.getAvailability())
-                            .build())
-                    .collect(Collectors.toList());
-
-            categories.add(MenuCategoryDTO.builder()
-                    .categoryId(categoryIdCounter++)
-                    .categoryName(entry.getKey())
-                    .items(summaries)
-                    .build());
-        }
+        List<MenuCategoryDTO> categories = grouped.entrySet().stream()
+                .map(entry -> MenuCategoryDTO.builder()
+                        .categoryName(entry.getKey())
+                        .items(entry.getValue().stream()
+                                .map(this::toSummaryDTO)
+                                .collect(Collectors.toList()))
+                        .build())
+                .collect(Collectors.toList());
 
         return MenuResponseDTO.builder()
                 .restaurantId(restaurantId)
@@ -114,30 +88,65 @@ public class RestaurantService {
                 .build();
     }
 
-    // ─── GET MENU ITEM DETAILS ───────────────────────────────────────────────
+    // ── GET /restaurants/{id}/menu/items/{itemId} ─────────────────────────────
 
     public MenuItemDetailsResponseDTO getMenuItemDetails(Integer restaurantId, Integer itemId) {
-        // Verify restaurant exists
-        restaurantRepository.findById(restaurantId)
-                .orElseThrow(() -> new NoSuchElementException(
-                        "Restaurant not found: " + restaurantId));
-
         MenuItem item = menuItemRepository.findById(itemId)
-                .orElseThrow(() -> new NoSuchElementException(
-                        "Menu item not found: " + itemId));
+                .orElseThrow(() -> new RuntimeException("MenuItem not found: " + itemId));
+
+        List<CustomizationDTO> customizationDTOs = item.getCustomizations() == null
+                ? List.of()
+                : item.getCustomizations().stream()
+                        .map(c -> CustomizationDTO.builder()
+                                .customizationId(c.getCustomizationId())
+                                .description(c.getDescription())
+                                .options(c.getOptions() == null ? List.of() :
+                                        c.getOptions().stream()
+                                                .map(o -> CustomizationOptionDTO.builder()
+                                                        .optionId(o.getOptionId())
+                                                        .optionName(o.getOptionName())
+                                                        .extraPrice(o.getExtraPrice())
+                                                        .isDefault(o.getIsDefault())
+                                                        .build())
+                                                .collect(Collectors.toList()))
+                                .build())
+                        .collect(Collectors.toList());
+
+        List<AddonDTO> addonDTOs = item.getAddons() == null
+                ? List.of()
+                : item.getAddons().stream()
+                        .map(a -> AddonDTO.builder()
+                                .addonId(a.getAddonId())
+                                .name(a.getName())
+                                .price(a.getPrice())
+                                .isPopular(a.getIsPopular())
+                                .build())
+                        .collect(Collectors.toList());
 
         return MenuItemDetailsResponseDTO.builder()
                 .itemId(item.getItemId())
                 .name(item.getName())
                 .description(item.getDescription())
-                .basePrice(item.getPrice() != null
-                        ? (int) Math.round(item.getPrice()) : 0)
-                .thumbnailUrl(null)
-                .isPopular(false)
+                .basePrice(item.getPrice().intValue())
+                .thumbnailUrl(item.getThumbnailUrl())
+                .isPopular(item.getIsPopular())
                 .isAvailable(item.getAvailability())
-                // No customizations or addons in DB yet — empty lists are safe for demo
-                .customizations(Collections.emptyList())
-                .addons(Collections.emptyList())
+                .customizations(customizationDTOs)
+                .addons(addonDTOs)
+                .build();
+    }
+
+    // ── Helper ────────────────────────────────────────────────────────────────
+
+    private MenuItemSummaryDTO toSummaryDTO(MenuItem item) {
+        return MenuItemSummaryDTO.builder()
+                .itemId(item.getItemId())
+                .name(item.getName())
+                .description(item.getDescription())
+                .price(item.getPrice().intValue())
+                .thumbnailUrl(item.getThumbnailUrl())
+                .isPopular(item.getIsPopular())
+                .isAvailable(item.getAvailability())
                 .build();
     }
 }
