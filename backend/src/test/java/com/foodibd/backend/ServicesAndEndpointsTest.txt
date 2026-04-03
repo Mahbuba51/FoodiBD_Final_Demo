@@ -1,0 +1,35 @@
+Test 1 — Get restaurant details:
+bashcurl http://localhost:8080/restaurants/1
+Test 2 — Get restaurant menu:
+bashcurl http://localhost:8080/restaurants/1/menu
+Test 3 — Get a single menu item:
+bashcurl http://localhost:8080/restaurants/1/menu/items/1
+Test 4 — Verify cart:
+bashcurl -X POST http://localhost:8080/cart/verify \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer test" \
+  -d '{"restaurant_id": 1, "items": [{"item_id": 1, "quantity": 2, "customizations": [], "addon_ids": [], "special_instructions": ""}]}'
+Test 5 — Generate bill:
+bashcurl -X POST http://localhost:8080/cart/bill \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer test" \
+  -d '{"restaurant_id": 1, "items": [{"item_id": 1, "quantity": 2}], "promo_code": "FOODI10"}'
+Test 6 — Validate promo:
+bashcurl -X POST http://localhost:8080/cart/promo \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer test" \
+  -d '{"promo_code": "FOODI10", "restaurant_id": 1, "subtotal": 640, "delivery_fee": 50}'
+Test 7 — Default address:
+bashcurl http://localhost:8080/users/addresses/default \
+  -H "Authorization: Bearer test"
+
+
+
+Here's what was confirmed:
+GET /restaurants/1              ✅ Returns Burger Boss with all details
+GET /restaurants/1/menu         ✅ Returns menu grouped by category (Burgers, Sides, Drinks)
+GET /restaurants/1/menu/items/1 ✅ Returns Classic Beef Burger details
+POST /cart/verify               ✅ Returns "Cart verified successfully."
+POST /cart/bill                 ✅ Subtotal 640, discount 64 (10%), total 626 — math is correct
+POST /cart/promo                ✅ FOODI10 validated, discount calculated correctly
+GET /users/addresses/default    ✅ Returns Dhaka address
